@@ -2,6 +2,7 @@
 
 import os
 from os import path
+import ntpath
 import argparse         # This module is used to pass optional flags to the importer
 import soundfile as sf  # This module is used to calculate the length of the sound files
 import pandas as pd     # Pandas is used to construct the CSV file
@@ -116,6 +117,7 @@ def process_component(audio_path, trans_path):
 def process_language(audio_path, trans_path):
     files = sorted(os.listdir(audio_path))  # Needs to be sorted so that we can use the "previous" later.
     accepted = 0
+    accepted_ids = []
     accepted_wavs = []
     accepted_wav_sizes = []
     accepted_wav_transcripts = []
@@ -125,6 +127,7 @@ def process_language(audio_path, trans_path):
     possible_file = None
     possible_filesize = 0
     possible_transcript = ""
+    possible_seconds = 0
 
     def maybe_add(possible_file, possible_filesize, possible_transcript):
         if possible_transcript and possible_transcript != "":
@@ -132,6 +135,7 @@ def process_language(audio_path, trans_path):
             # Import the previous file.
             nonlocal accepted
             accepted += 1
+            accepted_ids.append(ntpath.basename(possible_file))
             accepted_wavs.append(possible_file)
             accepted_wav_sizes.append(possible_filesize)
             accepted_wav_transcripts.append(possible_transcript)
@@ -161,9 +165,9 @@ def process_language(audio_path, trans_path):
             if possible_file is None:
                 pass
             elif file.endswith("(000).skp"):  # When we start processing a new "big" file.
-                maybe_add(possible_file, possible_filesize, possible_transcript)
+                maybe_add(possible_file, possible_seconds, possible_transcript)
             elif previous_end <= begin < end:
-                maybe_add(possible_file, possible_filesize, possible_transcript)
+                maybe_add(possible_file, possible_seconds, possible_transcript)
                 if idx == len(files) - 1:
                     # Also import the current file.
                     maybe_add(final_path, os.path.getsize(final_path), transcript)
@@ -174,11 +178,13 @@ def process_language(audio_path, trans_path):
 
             # Set the current file as a possible candidate for importing.
             possible_file = final_path
+            possible_seconds = seconds * 1000
             possible_filesize = os.path.getsize(final_path)
             possible_transcript = transcript
             previous_end = end
 
     processed_data = {
+        #'wav_id': accepted_ids,
         'wav_filename': accepted_wavs,
         'wav_filesize': accepted_wav_sizes,
         'transcript': accepted_wav_transcripts
@@ -282,17 +288,18 @@ def generate_splits(data):
     print("Writing training split")
     with open(FILENAME_TRAIN, 'a') as f:
         # We only want to write the header the first time, hence the quick check "header = ..."
-        train_data.to_csv(f, sep=',', mode='a', header=True, index=False, encoding="ascii")
+        train_data.to_csv(f, sep=',', mode='a', line_terminator='\n', header=True, index=False, encoding="ascii")
+        
 
     print("Writing validation split")
     with open(FILENAME_DEV, 'a') as f:
         # We only want to write the header the first time, hence the quick check "header = ..."
-        dev_data.to_csv(f, sep=',', mode='a', header=True, index=False, encoding="ascii")
+        dev_data.to_csv(f, sep=',', mode='a', line_terminator='\n', header=True, index=False, encoding="ascii")
 
     print("Writing test split")
     with open(FILENAME_TEST, 'a') as f:
         # We only want to write the header the first time, hence the quick check "header = ..."
-        test_data.to_csv(f, sep=',', mode='a', header=True, index=False, encoding="ascii")
+        test_data.to_csv(f, sep=',', mode='a', line_terminator='\n', header=True, index=False, encoding="ascii")
 
 
 if __name__ == "__main__":

@@ -160,7 +160,7 @@ def split_audio(audio_dir, name, i, begin, end):
     # Save the new file
     new_name = name + "(" + str(i).zfill(WIDTH) + ")" + ".wav"  # Use zfill to pad the index so we get 000 001 etc.
     new_audio_path = path.join(audio_dir, new_name)
-    new_fragment.export(new_audio_path, format="wav")
+    new_fragment.export(new_audio_path, format="wav", bitrate="16000")
 
 
 if __name__ == "__main__":
